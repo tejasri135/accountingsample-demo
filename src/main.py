@@ -11,17 +11,25 @@ gst_rates = {
 details = [] 
 pn= 1
 name = input("Hello pls enter the name")
-total_expense_list = int(input(("enter a no of expenses/purchases that needs to be stored")))
+try:
+    total_expense_list = int(input(("enter a no of expenses/purchases that needs to be stored")))
+except ValueError:
+    print("That's not a valid number defaulting no of entries as 1")
+    total_expense_list = 1
 for i in range(total_expense_list): 
     product_no = i
     product_name = (input("enter the product name "))
-    product_price = int(input("enter the base price "))
-    purchase_type = (input("enter the  purchase type ( electroncis ,standard,essentials,misc,luxury)"))
+    try:
+        product_price = int(input("enter the base price "))
+    except ValueError:
+        print("That's not a valid number. setting default baseprice as 100")
+        product_price = 100
+    purchase_type = (input("enter the  purchase type (electroncis ,standard,essentials,misc,luxury)"))    
     is_intrastate = input("is the purchase in the same state ?? Enter True or False: ") == "True"
     rate = gst_rates.get(purchase_type, 18)
     total_price = calc_gst(product_price, rate, not is_intrastate)
-    details.append({"product_no":product_no,"product_name":product_name,"purchase_type":purchase_type,"base_price":product_price,"is_interstate":is_intrastate,"tax_rate":rate,"total_price":total_price })
-#print(f"{product_name:<12}{purchase_type:<10}{product_price:<10}{is_interstate:<10}{rate:<10}{total_price:<10}")
+    details.append({"product_no":product_no,"product_name":product_name,"purchase_type":purchase_type,"base_price":product_price,"is_intrastate":is_intrastate,"tax_rate":rate,"total_price":total_price })
+#print(f"{product_name:<12}{purchase_type:<10}{product_price:<10}{is_intrastate:<10}{rate:<10}{total_price:<10}")
 
 #adding proper display format
 print('-'*100)
