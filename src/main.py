@@ -9,7 +9,6 @@ gst_rates = {
 }
 
 details = [] 
-pn= 1
 name = input("Hello pls enter the name")
 try:
     total_expense_list = int(input(("enter a no of expenses/purchases that needs to be stored")))
