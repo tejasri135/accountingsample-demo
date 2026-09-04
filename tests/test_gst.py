@@ -1,4 +1,4 @@
-from src.gst import  calc_gst
+from gst import  calc_gst
 ##print(calc_gst(250, 12, False))
 
 

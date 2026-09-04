@@ -1,3 +1,5 @@
+
+
 def calc_gst(base_price, rate, is_interstate):
         tax = base_price*(rate/100)
         total_product_price = base_price+tax

@@ -27,3 +27,4 @@ class Product:
                                 "total_product_price": round(( self.base_price+tax),2)
                 
                                 }
+

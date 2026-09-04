@@ -27,6 +27,26 @@ Adding two test cases to check on interstate and intrastate categorization and t
 
 python -m pytest
 
+## sample output 
+
+========== ACCOUNTING CLI ==========
+
+Enter annual income: 1000000
+
+Enter number of expenses: 3
+
+Expense 1
+Type: Rent
+Amount: 200000
+
+Expense 2
+Type: Food
+Amount: 50000
+
+Expense 3
+Type: Travel
+Amount: 30000
+
 ## Next steps
 - Save bills to a database (persistence)
 - Monthly summary of total sales and GST
