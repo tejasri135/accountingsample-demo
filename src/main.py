@@ -46,6 +46,8 @@ print(f"{'Product':<20}{'Category':<20}{'Base':<20}{'CGST':<20}{'SGST':<20}{'IGS
 print('-'*160)
 grand_total,cgst_total,igst_total,sgst_total,total_tax,taxable_value = 0, 0, 0, 0, 0,0
 
+rate_summary = {}
+    
 for item in details:
     name = item['product_name']
     cat = item['purchase_type']
@@ -57,12 +59,17 @@ for item in details:
     total = item['total_price']['total_product_price']
     taxable_value += base
     grand_total +=total
+    rate_summary[rate] = rate_summary.get(rate, 0) + base
     cgst_total +=cgst
     sgst_total +=sgst
     igst_total +=igst
     print(f"{name:<20}{cat:<20}{base:<20}{cgst:<20}{sgst:<20}{igst:<20}{rate:<20}{total:<20}")
     print('-'*160)
 total_tax = sum([cgst_total,sgst_total,igst_total])    
+print('-'*160)
+print("Taxable value grouped by rate:")
+for slab, amount in rate_summary.items():
+    print(f"{'Rate ' + str(slab) + '%':<25}{amount:>15}")
 print('-'*160)
 print(f"{'Total Taxable Value':<25}{taxable_value:>15}")
 print(f"{'Total CGST':<25}{cgst_total:>15}")
