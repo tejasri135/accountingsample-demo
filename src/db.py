@@ -1,5 +1,6 @@
 import sqlite3
 
+
 def get_connection():
     return sqlite3.connect("gst.db")
 
@@ -11,7 +12,11 @@ def create_table():
             product_name TEXT,
             base_price REAL,
             tax_rate INTEGER,
-            purchase_date TEXT
+            purchase_date TEXT,
+            cgst REAL,
+            sgst REAL,
+            igst REAL,
+            total REAL
         )
     """)
     conn.commit()
@@ -19,11 +24,11 @@ def create_table():
 
 create_table()
 
-def add_purchase(product_name, base_price, tax_rate, purchase_date):
+def add_purchase(product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total):
     conn = get_connection()
     conn.execute(
-        "INSERT INTO purchases (product_name, base_price, tax_rate, purchase_date) VALUES (?, ?, ?, ?)",
-        (product_name, base_price, tax_rate, purchase_date)
+        "INSERT INTO purchases (product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total) VALUES (?, ?, ?, ?,?,?,?,?)",
+        (product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total)
     )
     conn.commit()
     conn.close()
@@ -34,3 +39,23 @@ def get_all_purchases():
     rows = conn.execute("SELECT * FROM purchases").fetchall()
     conn.close()
     return rows
+
+
+def get_monthly_reports():
+    conn = get_connection()
+    row=conn.execute("""select sum(base_price)as taxable,sum(cgst) as cgst,sum(sgst) as sgst,sum(igst) as igst from purchases
+                    WHERE strftime('%m', purchase_date) = strftime('%m', 'now')
+                    AND strftime('%Y', purchase_date) = strftime('%Y', 'now')                 """
+    ).fetchone()
+    conn.close()
+    return row
+
+
+
+def get_yearly_reports():
+    conn = get_connection()
+    row=conn.execute("""select sum(base_price)as taxable,sum(cgst) as cgst,sum(sgst) as sgst,sum(igst) as igst from purchases
+                    WHERE  strftime('%Y', purchase_date) = strftime('%Y', 'now')                 """
+    ).fetchone()
+    conn.close()
+    return row
