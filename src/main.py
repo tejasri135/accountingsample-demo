@@ -9,6 +9,15 @@ gst_rates = {
     "luxury": 28,
     "misc": 18
 }
+def get_report(rows):
+    base = cgst = sgst = igst = 0
+    for item in rows:
+        base += item['base_price']
+        cgst += item['total_price']['cgst']
+        sgst += item['total_price']['sgst']
+        igst += item['total_price']['igst']
+    total_tax = cgst + sgst + igst
+    return {'base': base, 'cgst': cgst, 'sgst': sgst, 'igst': igst, 'total_tax': total_tax}
 
 details = [] 
 name = input("Hello pls enter the name")
@@ -92,35 +101,20 @@ print(f"{'Grand Total':<25}{grand_total:>15}")
 
 is_today = date.today()
 
-m_base,m_cgst,m_sgst,m_igst = 0,0,0,0
-##get monthly reports. 
-for item in details:
-    if item['purchase_date'].month == is_today.month and item['purchase_date'].year == is_today.year:
-        m_base += item['base_price']
-        m_cgst += item['total_price']['cgst']
-        m_sgst += item['total_price']['sgst']
-        m_igst += item['total_price']['igst']
-
+monthly_rows = [item for item in details if item['purchase_date'].month == is_today.month and item['purchase_date'].year == is_today.year]
+m = get_report(monthly_rows)
 print(f"\n--- Monthly Report ({is_today.month}/{is_today.year}) ---")
-print(f"{'Taxable Value':<25}{m_base:>15}")
-print(f"{'CGST':<25}{m_cgst:>15}")
-print(f"{'SGST':<25}{m_sgst:>15}")
-print(f"{'IGST':<25}{m_igst:>15}")
-
+print(f"{'Taxable Value':<25}{m['base']:>15}")
+print(f"{'CGST':<25}{m['cgst']:>15}")
+print(f"{'SGST':<25}{m['sgst']:>15}")
+print(f"{'IGST':<25}{m['igst']:>15}")
 
 ## Yearly reports
 
-y_base,y_cgst,y_sgst,y_igst = 0,0,0,0
-##get monthly reports. 
-for item in details:
-    if  item['purchase_date'].year == is_today.year:
-        y_base += item['base_price']
-        y_cgst += item['total_price']['cgst']
-        y_sgst += item['total_price']['sgst']
-        y_igst += item['total_price']['igst']
-
-print(f"\n--- Yearly Report ({is_today.year}) ---")
-print(f"{'Taxable Value':<25}{y_base:>15}")
-print(f"{'CGST':<25}{y_cgst:>15}")
-print(f"{'SGST':<25}{y_sgst:>15}")
-print(f"{'IGST':<25}{y_igst:>15}")
+yearly_rows = [item for item in details if  item['purchase_date'].year == is_today.year]
+m = get_report(yearly_rows)
+print(f"\n--- {is_today.year}) ---")
+print(f"{'Taxable Value':<25}{m['base']:>15}")
+print(f"{'CGST':<25}{m['cgst']:>15}")
+print(f"{'SGST':<25}{m['sgst']:>15}")
+print(f"{'IGST':<25}{m['igst']:>15}")
