@@ -1,3 +1,5 @@
+from datetime import datetime,date
+
 from gst import calc_gst
 from product import Product
 gst_rates = {
@@ -23,7 +25,16 @@ for i in range(total_expense_list):
     except ValueError:
         print("That's not a valid number. setting default baseprice as 100")
         product_price = 100
-    purchase_type = (input("enter the  purchase type (electronics ,standard,essentials,misc,luxury)"))    
+    purchase_type = (input("enter the  purchase type (electronics ,standard,essentials,misc,luxury)"))   
+    purchase_date = (input("enter the  purchase date in YYYY-MM-DD format"))    
+    try:
+    # Convert string to datetime object
+        purchase_date = datetime.strptime(purchase_date, "%Y-%m-%d")
+    except ValueError:
+        print("Invalid date format. Please use YYYY-MM-DD. Setting default date to today" f"{date.today()}")
+        purchase_date = date.today()
+
+ 
     is_intrastate = input("is the purchase in the same state ?? Enter True/yes or False/no: ").capitalize()
     if is_intrastate in("Yes","Y","True"):
          is_intrastate = True
@@ -34,22 +45,23 @@ for i in range(total_expense_list):
     p = Product(product_name, product_price, rate, not is_intrastate) 
     ##total_price = calc_gst(product_price, rate, not is_intrastate)
     total_price = p.calculate_gst()
-    details.append({"product_no":product_no,"product_name":product_name,"purchase_type":purchase_type,
+    details.append({"product_no":product_no,"product_name":product_name,"purchase_type":purchase_type,"purchase_date":purchase_date,
                     "base_price":product_price,"is_intrastate":is_intrastate,"tax_rate":rate,"total_price":total_price, })
 #print(f"{product_name:<12}{purchase_type:<10}{product_price:<10}{is_intrastate:<10}{rate:<10}{total_price:<10}")
 
 #adding proper display format
-print('-'*160)
+print('-'*180)
 print(f'------------------------------------------------------------------WELCOME  {name.capitalize()}--------------------------------------------------------------------')
-print('-'*160)
-print(f"{'Product':<20}{'Category':<20}{'Base':<20}{'CGST':<20}{'SGST':<20}{'IGST':<20}{'Rate':<20}{'Total':<20}")
-print('-'*160)
+print('-'*180)
+print(f"{'Product':<20}{'purchase_date':<20}{'Category':<20}{'Base':<20}{'CGST':<20}{'SGST':<20}{'IGST':<20}{'Rate':<20}{'Total':<20}")
+print('-'*180)
 grand_total,cgst_total,igst_total,sgst_total,total_tax,taxable_value = 0, 0, 0, 0, 0,0
 
 rate_summary = {}
     
 for item in details:
     name = item['product_name']
+    display_date = item['purchase_date'].strftime('%Y-%m-%d')
     cat = item['purchase_type']
     base = item['base_price']
     cgst = item['total_price']['cgst']
@@ -63,17 +75,52 @@ for item in details:
     cgst_total +=cgst
     sgst_total +=sgst
     igst_total +=igst
-    print(f"{name:<20}{cat:<20}{base:<20}{cgst:<20}{sgst:<20}{igst:<20}{rate:<20}{total:<20}")
-    print('-'*160)
+    print(f"{name:<20}{display_date:<20}{cat:<20}{base:<20}{cgst:<20}{sgst:<20}{igst:<20}{rate:<20}{total:<20}")
+    print('-'*180)
 total_tax = sum([cgst_total,sgst_total,igst_total])    
-print('-'*160)
+print('-'*180)
 print("Taxable value grouped by rate:")
 for slab, amount in rate_summary.items():
     print(f"{'Rate ' + str(slab) + '%':<25}{amount:>15}")
-print('-'*160)
+print('-'*180)
 print(f"{'Total Taxable Value':<25}{taxable_value:>15}")
 print(f"{'Total CGST':<25}{cgst_total:>15}")
 print(f"{'Total SGST':<25}{sgst_total:>15}")
 print(f"{'Total IGST':<25}{igst_total:>15}")
 print(f"{'Total Tax':<25}{total_tax:>15}")
 print(f"{'Grand Total':<25}{grand_total:>15}")
+
+is_today = date.today()
+
+m_base,m_cgst,m_sgst,m_igst = 0,0,0,0
+##get monthly reports. 
+for item in details:
+    if item['purchase_date'].month == is_today.month and item['purchase_date'].year == is_today.year:
+        m_base += item['base_price']
+        m_cgst += item['total_price']['cgst']
+        m_sgst += item['total_price']['sgst']
+        m_igst += item['total_price']['igst']
+
+print(f"\n--- Monthly Report ({is_today.month}/{is_today.year}) ---")
+print(f"{'Taxable Value':<25}{m_base:>15}")
+print(f"{'CGST':<25}{m_cgst:>15}")
+print(f"{'SGST':<25}{m_sgst:>15}")
+print(f"{'IGST':<25}{m_igst:>15}")
+
+
+## Yearly reports
+
+y_base,y_cgst,y_sgst,y_igst = 0,0,0,0
+##get monthly reports. 
+for item in details:
+    if  item['purchase_date'].year == is_today.year:
+        y_base += item['base_price']
+        y_cgst += item['total_price']['cgst']
+        y_sgst += item['total_price']['sgst']
+        y_igst += item['total_price']['igst']
+
+print(f"\n--- Yearly Report ({is_today.year}) ---")
+print(f"{'Taxable Value':<25}{y_base:>15}")
+print(f"{'CGST':<25}{y_cgst:>15}")
+print(f"{'SGST':<25}{y_sgst:>15}")
+print(f"{'IGST':<25}{y_igst:>15}")
