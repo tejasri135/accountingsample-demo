@@ -2,13 +2,8 @@ from datetime import datetime,date
 
 from gst import calc_gst
 from product import Product
-gst_rates = {
-    "essentials": 5,
-    "standard": 12,
-    "electronics": 18,
-    "luxury": 28,
-    "misc": 18
-}
+from rates import gst_rates
+
 def get_report(rows):
     base = cgst = sgst = igst = 0
     for item in rows:
