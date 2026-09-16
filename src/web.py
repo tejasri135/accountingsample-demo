@@ -59,12 +59,22 @@ def form():
 @app.get("/report", response_class=HTMLResponse)
 def report():
     rows = get_all_purchases()
-    html = "<h2>Purchases</h2>"
+    html = """
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; color: #1a1a1a; }
+        .invoice-title { font-size: 40px; font-weight: bold; color: #1a3a6b; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th { background: #1a3a6b; color: white; padding: 10px; text-align: left; }
+        td { padding: 8px 12px; border: 1px solid #ccc; }
+        .totals { margin-top: 20px; width: 350px; margin-left: auto; }
+    </style>
+    <div class="invoice-title">INVOICE</div>
+    """
     html += '<a href="/form">+ Add another purchase</a>'
-    html += "<table border='1'>"
-    html += "<tr><th>ID</th><th>Product</th><th>Base</th><th>Rate</th><th>Date</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th></tr>"
+    html += "<table>"
+    html += "<tr><th>SL No</th><th>Product</th><th>Base</th><th>Rate</th><th>Date</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th></tr>" 
     for row in rows:
-        html += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td><td>{row[5]}</td><td>{row[6]}</td><td>{row[7]}</td><td>{row[8]}</td></tr>"
+     html += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td><td>{row[5]}</td><td>{row[6]}</td><td>{row[7]}</td><td>{row[8]}</td></tr>"
     html += "</table>"
     
     m = get_monthly_reports()
@@ -74,6 +84,9 @@ def report():
     html += f"<tr><td>CGST</td><td>{m[1]}</td></tr>"
     html += f"<tr><td>SGST</td><td>{m[2]}</td></tr>"
     html += f"<tr><td>IGST</td><td>{m[3]}</td></tr>"
+    
+    html += f"<tr><td>Total</td><td>{m[3]}</td></tr>"
+
     html += "</table>"
 
     y = get_yearly_reports()
