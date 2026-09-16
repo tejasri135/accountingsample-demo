@@ -1,16 +1,41 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form,Request
 from src.product import Product
 from fastapi.responses import HTMLResponse
 from src.rates import gst_rates
 from fastapi.responses import RedirectResponse
 from datetime import date
-from src.db import get_all_purchases, add_purchase, get_monthly_reports, get_yearly_reports, check_login
+from src.db import get_all_purchases, add_purchase, get_monthly_reports, get_yearly_reports, check_login, create_user
+from starlette.middleware.sessions import SessionMiddleware
 
 today = date.today()
 month_label = today.strftime("%B %Y")   # e.g. "September 2026"
 year_label = today.strftime("%Y")        # e.g. "2026"
 app = FastAPI()
+app.add_middleware(SessionMiddleware, secret_key="change-this-to-a-random-string")
 
+@app.get("/register", response_class=HTMLResponse)
+def register():
+    return """
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .box { width: 300px; margin: 100px auto; padding: 30px; background: white;
+               border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { color: #1a3a6b; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #1a3a6b; color: white;
+                 border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+    <div class="box">
+        <h2>Sign Up</h2>
+        <form action="/do-register" method="post">
+            <input name="username" placeholder="Username">
+            <input name="password" type="password" placeholder="Password">
+            <button type="submit">Register</button>
+        </form>
+    </div>
+    """
+    
+    
 @app.get("/login", response_class=HTMLResponse)
 def login():
     return """
@@ -86,7 +111,10 @@ def form():
     
 
 @app.get("/report", response_class=HTMLResponse)
-def report():
+def report(request: Request):
+    user = request.session.get("user")
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
     rows = get_all_purchases()
     html = """
     <style>
@@ -99,6 +127,7 @@ def report():
     </style>
     <div class="invoice-title">INVOICE</div>
     """
+    html += f"<p>Welcome {user}</p>"
     html += '<a href="/form">+ Add another purchase</a>'
     html += "<table>"
     html += "<tr><th>SL No</th><th>Product</th><th>Base</th><th>Rate</th><th>Date</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th></tr>" 
@@ -111,23 +140,28 @@ def report():
     
     m = get_monthly_reports()
     html += f"<h3>Current Month - {month_label}</h3>"
-    html += "<table border='1'>"
+    html += "<table>"
     html += f"<tr><td>Taxable Amount</td><td>{m[0]}</td></tr>"
     html += f"<tr><td>CGST</td><td>{m[1]}</td></tr>"
     html += f"<tr><td>SGST</td><td>{m[2]}</td></tr>"
     html += f"<tr><td>IGST</td><td>{m[3]}</td></tr>"
     
-    html += f"<tr><td>Total</td><td>{m[3]}</td></tr>"
+    html += f"<tr><td>Total Tax</td><td>{m[1] + m[2] + m[3]}</td></tr>"
 
+    html += f"<tr><td>Total Payable</td><td>{m[0] + m[1] + m[2] + m[3]}</td></tr>"
     html += "</table>"
 
     y = get_yearly_reports()
     html += f"<h3>Current Year - {year_label}</h3>"
-    html += "<table border='1'>"
+    html += "<table>"
     html += f"<tr><td>Taxable Amount</td><td>{y[0]}</td></tr>"
     html += f"<tr><td>CGST</td><td>{y[1]}</td></tr>"
     html += f"<tr><td>SGST</td><td>{y[2]}</td></tr>"
     html += f"<tr><td>IGST</td><td>{y[3]}</td></tr>"
+    
+    html += f"<tr><td>Total Tax</td><td>{y[1] + y[2] + y[3]}</td></tr>"
+    html += f"<tr><td>Total Payable</td><td>{y[0] + y[1] + y[2] + y[3]}</td></tr>"
+
     html += "</table>"
     return html
 
@@ -141,9 +175,20 @@ def add(product_name: str, base: int, purchase_type: str, purchase_date: str, in
     ##return {"saved": product_name, "rate_used": rate, "tax": result}
     return RedirectResponse(url="/report", status_code=303)
 
+
 @app.post("/do-login")
-def do_login(username: str = Form(...), password: str = Form(...)):
+def do_login(request: Request, username: str = Form(...), password: str = Form(...)):
     if check_login(username, password):
+        request.session["user"] = username      # ← the wristband
         return RedirectResponse(url="/report", status_code=303)
     else:
         return HTMLResponse("<h3>Wrong username or password. <a href='/login'>Try again</a></h3>")
+    
+    
+@app.post("/do-register")
+def do_register(username: str = Form(...), password: str = Form(...)):
+    try:
+        create_user(username, password)
+        return RedirectResponse(url="/login", status_code=303)
+    except Exception:
+        return HTMLResponse("<h3>Username already taken. <a href='/register'>Try another</a></h3>")    
