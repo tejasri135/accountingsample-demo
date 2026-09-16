@@ -199,7 +199,7 @@ def do_register(username: str = Form(...), password: str = Form(...)):
         create_user(username, password)
         return RedirectResponse(url="/login?registered=1", status_code=303)
     except Exception as e:
-        return HTMLResponse(f"<h3>Error: {e}</h3>")    
+        return HTMLResponse(f"<h3>username already taken!! please try with another username</h3>")    
 @app.get("/logout")
 def logout(request: Request):
     request.session.clear()
