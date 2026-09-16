@@ -1,16 +1,37 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 from src.product import Product
 from fastapi.responses import HTMLResponse
-from src.db import get_all_purchases,add_purchase,get_monthly_reports, get_yearly_reports
 from src.rates import gst_rates
 from fastapi.responses import RedirectResponse
 from datetime import date
+from src.db import get_all_purchases, add_purchase, get_monthly_reports, get_yearly_reports, check_login
 
 today = date.today()
 month_label = today.strftime("%B %Y")   # e.g. "September 2026"
 year_label = today.strftime("%Y")        # e.g. "2026"
 app = FastAPI()
 
+@app.get("/login", response_class=HTMLResponse)
+def login():
+    return """
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .box { width: 300px; margin: 100px auto; padding: 30px; background: white;
+               border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { color: #1a3a6b; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #1a3a6b; color: white;
+                 border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+    <div class="box">
+        <h2>Login</h2>
+        <form action="/do-login" method="post">
+            <input name="username" placeholder="Username">
+            <input name="password" type="password" placeholder="Password">
+            <button type="submit">Login</button>
+        </form>
+    </div>
+    """
 
 @app.get("/")
 def home():
@@ -27,6 +48,14 @@ def calc(base: int, rate: int, interstate: bool = False):
 @app.get("/form", response_class=HTMLResponse)
 def form():
     return """
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .box { max-width: 420px; margin: 40px auto; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h2 { color: #1a3a6b; }
+        input, select { width: 100%; padding: 8px; margin: 4px 0; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #1a3a6b; color: white; border: none; border-radius: 4px; }
+    </style>
+    <div class="box">
     <h2>GST Calculator</h2>
 <form action="/add" method="get">
     Product: <input name="product_name"><br><br>
@@ -73,8 +102,11 @@ def report():
     html += '<a href="/form">+ Add another purchase</a>'
     html += "<table>"
     html += "<tr><th>SL No</th><th>Product</th><th>Base</th><th>Rate</th><th>Date</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th></tr>" 
+    grand_total = 0
     for row in rows:
-     html += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td><td>{row[5]}</td><td>{row[6]}</td><td>{row[7]}</td><td>{row[8]}</td></tr>"
+        grand_total += row[8]
+        html += f"<tr><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td><td>{row[5]}</td><td>{row[6]}</td><td>{row[7]}</td><td>{row[8]}</td></tr>"
+    html += f"<tr><th colspan='8'>Grand Total</th><th>{grand_total}</th></tr>"
     html += "</table>"
     
     m = get_monthly_reports()
@@ -109,3 +141,9 @@ def add(product_name: str, base: int, purchase_type: str, purchase_date: str, in
     ##return {"saved": product_name, "rate_used": rate, "tax": result}
     return RedirectResponse(url="/report", status_code=303)
 
+@app.post("/do-login")
+def do_login(username: str = Form(...), password: str = Form(...)):
+    if check_login(username, password):
+        return RedirectResponse(url="/report", status_code=303)
+    else:
+        return HTMLResponse("<h3>Wrong username or password. <a href='/login'>Try again</a></h3>")

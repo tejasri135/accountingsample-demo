@@ -1,5 +1,5 @@
 import sqlite3
-
+import bcrypt
 
 def get_connection():
     return sqlite3.connect("gst.db")
@@ -19,7 +19,15 @@ def create_table():
             total REAL
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password_hash TEXT
+        )
+    """)
     conn.commit()
+    
     conn.close()
 
 create_table()
@@ -59,3 +67,26 @@ def get_yearly_reports():
     ).fetchone()
     conn.close()
     return row
+import bcrypt
+
+def create_user(username, password):
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+        (username, password_hash)
+    )
+    conn.commit()
+    conn.close()
+def check_login(username, password):
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT password_hash FROM users WHERE username = ?",
+        (username,)
+    ).fetchone()
+    conn.close()
+    if row is None:
+        return False
+    stored_hash = row[0]
+    return bcrypt.checkpw(password.encode(), stored_hash)
+print(get_connection().execute("SELECT * FROM users").fetchall())
