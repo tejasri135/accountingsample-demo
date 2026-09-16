@@ -16,7 +16,8 @@ def create_table():
             cgst REAL,
             sgst REAL,
             igst REAL,
-            total REAL
+            total REAL,
+            user_id text
         )
     """)
     conn.execute("""
@@ -32,42 +33,46 @@ def create_table():
 
 create_table()
 
-def add_purchase(product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total):
+def add_purchase(product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total,user_id):
     conn = get_connection()
     conn.execute(
-        "INSERT INTO purchases (product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total) VALUES (?, ?, ?, ?,?,?,?,?)",
-        (product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total)
+        "INSERT INTO purchases (product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total,user_id) VALUES (?, ?, ?, ?,?,?,?,?,?)",
+        (product_name, base_price, tax_rate, purchase_date,cgst,sgst,igst,total,user_id)
     )
     conn.commit()
     conn.close()
 
 
-def get_all_purchases():
+def get_all_purchases(user_id):
     conn = get_connection()
-    rows = conn.execute("SELECT * FROM purchases").fetchall()
+    rows = conn.execute("SELECT * FROM purchases WHERE user_id = ?", (user_id,)).fetchall()
     conn.close()
     return rows
 
 
-def get_monthly_reports():
+def get_monthly_reports(user_id):
     conn = get_connection()
-    row=conn.execute("""select sum(base_price)as taxable,sum(cgst) as cgst,sum(sgst) as sgst,sum(igst) as igst from purchases
-                    WHERE strftime('%m', purchase_date) = strftime('%m', 'now')
-                    AND strftime('%Y', purchase_date) = strftime('%Y', 'now')                 """
-    ).fetchone()
+    row = conn.execute("""
+        SELECT COALESCE(sum(base_price),0) as taxable,COALESCE(sum(cgst),0) as cgst,COALESCE(sum(sgst),0) as sgst,COALESCE(sum(igst),0) as igst
+        FROM purchases
+        WHERE strftime('%m', purchase_date) = strftime('%m', 'now')
+        AND strftime('%Y', purchase_date) = strftime('%Y', 'now')
+        AND user_id = ?
+    """, (user_id,)).fetchone()
     conn.close()
     return row
 
 
-
-def get_yearly_reports():
+def get_yearly_reports(user_id):
     conn = get_connection()
-    row=conn.execute("""select sum(base_price)as taxable,sum(cgst) as cgst,sum(sgst) as sgst,sum(igst) as igst from purchases
-                    WHERE  strftime('%Y', purchase_date) = strftime('%Y', 'now')                 """
-    ).fetchone()
+    row = conn.execute("""
+        SELECT COALESCE(sum(base_price),0) as taxable,COALESCE(sum(cgst),0) as cgst,COALESCE(sum(sgst),0) as sgst,COALESCE(sum(igst),0) as igst
+        FROM purchases
+        WHERE strftime('%Y', purchase_date) = strftime('%Y', 'now')
+        AND user_id = ?
+    """, (user_id,)).fetchone()
     conn.close()
     return row
-import bcrypt
 
 def create_user(username, password):
     password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
@@ -89,4 +94,10 @@ def check_login(username, password):
         return False
     stored_hash = row[0]
     return bcrypt.checkpw(password.encode(), stored_hash)
-print(get_connection().execute("SELECT * FROM users").fetchall())
+
+
+def get_user_id(username):
+    conn = get_connection()
+    row = conn.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    return row[0] if row else None

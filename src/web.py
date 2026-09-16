@@ -4,7 +4,7 @@ from fastapi.responses import HTMLResponse
 from src.rates import gst_rates
 from fastapi.responses import RedirectResponse
 from datetime import date
-from src.db import get_all_purchases, add_purchase, get_monthly_reports, get_yearly_reports, check_login, create_user
+from src.db import get_all_purchases, add_purchase, get_monthly_reports, get_yearly_reports, check_login, create_user,get_user_id
 from starlette.middleware.sessions import SessionMiddleware
 
 today = date.today()
@@ -115,7 +115,9 @@ def report(request: Request):
     user = request.session.get("user")
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
-    rows = get_all_purchases()
+    user_id = get_user_id(user) 
+    rows = get_all_purchases(user_id)
+    
     html = """
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; color: #1a1a1a; }
@@ -127,7 +129,7 @@ def report(request: Request):
     </style>
     <div class="invoice-title">INVOICE</div>
     """
-    html += f"<p>Welcome {user}</p>"
+    html += f'<p>Welcome {user} | <a href="/logout">Logout</a></p>'
     html += '<a href="/form">+ Add another purchase</a>'
     html += "<table>"
     html += "<tr><th>SL No</th><th>Product</th><th>Base</th><th>Rate</th><th>Date</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total</th></tr>" 
@@ -138,7 +140,7 @@ def report(request: Request):
     html += f"<tr><th colspan='8'>Grand Total</th><th>{grand_total}</th></tr>"
     html += "</table>"
     
-    m = get_monthly_reports()
+    m = get_monthly_reports(user_id)
     html += f"<h3>Current Month - {month_label}</h3>"
     html += "<table>"
     html += f"<tr><td>Taxable Amount</td><td>{m[0]}</td></tr>"
@@ -151,7 +153,7 @@ def report(request: Request):
     html += f"<tr><td>Total Payable</td><td>{m[0] + m[1] + m[2] + m[3]}</td></tr>"
     html += "</table>"
 
-    y = get_yearly_reports()
+    y = get_yearly_reports(user_id)
     html += f"<h3>Current Year - {year_label}</h3>"
     html += "<table>"
     html += f"<tr><td>Taxable Amount</td><td>{y[0]}</td></tr>"
@@ -166,15 +168,17 @@ def report(request: Request):
     return html
 
 @app.get("/add")
-def add(product_name: str, base: int, purchase_type: str, purchase_date: str, interstate: bool = False):
-    rate = gst_rates.get(purchase_type, 18)      # ← the lookup, same as CLI
+def add(request: Request, product_name: str, base: int, purchase_type: str, purchase_date: str, interstate: bool = False):
+    user = request.session.get("user")
+    if user is None:
+        return RedirectResponse(url="/login", status_code=303)
+    user_id = get_user_id(user)
+    rate = gst_rates.get(purchase_type, 18)
     p = Product(product_name, base, rate, interstate)
     result = p.calculate_gst()
     add_purchase(product_name, base, rate, purchase_date,
-                 result['cgst'], result['sgst'], result['igst'], result['total_product_price'])
-    ##return {"saved": product_name, "rate_used": rate, "tax": result}
+                 result['cgst'], result['sgst'], result['igst'], result['total_product_price'], user_id)
     return RedirectResponse(url="/report", status_code=303)
-
 
 @app.post("/do-login")
 def do_login(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -192,3 +196,8 @@ def do_register(username: str = Form(...), password: str = Form(...)):
         return RedirectResponse(url="/login", status_code=303)
     except Exception:
         return HTMLResponse("<h3>Username already taken. <a href='/register'>Try another</a></h3>")    
+    
+@app.get("/logout")
+def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=303)   
