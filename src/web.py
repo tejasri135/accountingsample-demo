@@ -37,19 +37,23 @@ def register():
     
     
 @app.get("/login", response_class=HTMLResponse)
-def login():
-    return """
+def login(registered: str = ""):
+    message = ""
+    if registered:
+        message = "<p style='color:green;text-align:center;'>New user added! Please login with your credentials.</p>"
+    return f"""
     <style>
-        body { font-family: Arial, sans-serif; background: #f0f2f5; }
-        .box { width: 300px; margin: 100px auto; padding: 30px; background: white;
-               border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        h2 { color: #1a3a6b; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #1a3a6b; color: white;
-                 border: none; border-radius: 4px; cursor: pointer; }
+        body {{ font-family: Arial, sans-serif; background: #f0f2f5; }}
+        .box {{ width: 300px; margin: 100px auto; padding: 30px; background: white;
+               border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+        h2 {{ color: #1a3a6b; text-align: center; }}
+        input {{ width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; }}
+        button {{ width: 100%; padding: 10px; background: #1a3a6b; color: white;
+                 border: none; border-radius: 4px; cursor: pointer; }}
     </style>
     <div class="box">
         <h2>Login</h2>
+        {message}
         <form action="/do-login" method="post">
             <input name="username" placeholder="Username">
             <input name="password" type="password" placeholder="Password">
@@ -193,10 +197,9 @@ def do_login(request: Request, username: str = Form(...), password: str = Form(.
 def do_register(username: str = Form(...), password: str = Form(...)):
     try:
         create_user(username, password)
-        return RedirectResponse(url="/login", status_code=303)
-    except Exception:
-        return HTMLResponse("<h3>Username already taken. <a href='/register'>Try another</a></h3>")    
-    
+        return RedirectResponse(url="/login?registered=1", status_code=303)
+    except Exception as e:
+        return HTMLResponse(f"<h3>Error: {e}</h3>")    
 @app.get("/logout")
 def logout(request: Request):
     request.session.clear()
